@@ -1,103 +1,147 @@
 import pygame
 import random
 import sys
+import time
 
 # Initialize pygame
 pygame.init()
-game_over_font = pygame.font.Font(None, 72)
+pygame.mixer.init()
 
-# Load the highest score from file
+# Constants
+SCREEN_WIDTH, SCREEN_HEIGHT = 1100, 700
+BASKET_WIDTH, BASKET_HEIGHT = 100, 20
+OBJECT_WIDTH, OBJECT_HEIGHT = 30, 30
+BASKET_SPEED = 15
+OBJECT_SPEED = 5
+OBJECT_SPAWN_DELAY = 1000  # milliseconds
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+YELLOW = (255, 255, 0)
+BLUE = (0, 0, 255)
+GRAY = (200, 200, 200)
+
+# Load high score
 try:
     with open("highscore.txt", "r") as f:
         high_score = int(f.read())
 except FileNotFoundError:
     high_score = 0
 
-# Screen settings
-SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
+# Initialize screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Catch the Falling Objects")
 
-# Colors
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-BLUE = (0, 0, 255)
+# Fonts
+font = pygame.font.Font(None, 36)
+game_over_font = pygame.font.Font(None, 72)
+title_font = pygame.font.Font(None, 100)
 
-# Basket settings
-BASKET_WIDTH, BASKET_HEIGHT = 80, 20
+# Basket position
 basket_x = SCREEN_WIDTH // 2 - BASKET_WIDTH // 2
 basket_y = SCREEN_HEIGHT - BASKET_HEIGHT - 10
-basket_speed = 15
 
-# Object settings
-OBJECT_WIDTH, OBJECT_HEIGHT = 20, 20
-object_x = random.randint(0, SCREEN_WIDTH - OBJECT_WIDTH)
-object_y = -OBJECT_HEIGHT
-object_speed = 5
+# Game variables
+objects = []
+score = 10
+game_state = "START"
+clock = pygame.time.Clock()
+last_object_spawn = pygame.time.get_ticks()
 
-# Score
-score = 0
-font = pygame.font.Font(None, 36)
+# Functions
+def draw_button(text, x, y, width, height, color, hover_color):
+    mouse_pos = pygame.mouse.get_pos()
+    clicked = pygame.mouse.get_pressed()[0]
+    pygame.draw.rect(screen, hover_color if x < mouse_pos[0] < x + width and y < mouse_pos[1] < y + height else color, (x, y, width, height))
+    text_surface = font.render(text, True, BLACK)
+    text_rect = text_surface.get_rect(center=(x + width // 2, y + height // 2))
+    screen.blit(text_surface, text_rect)
+    return clicked and x < mouse_pos[0] < x + width and y < mouse_pos[1] < y + height
 
-# Game loop
-running = True
-while running:
-    screen.fill(WHITE)
+def draw_text(text, font, color, x, y):
+    screen.blit(font.render(text, True, color), (x, y))
 
-    # Event handling
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            with open("highscore.txt", "w") as f:
-                f.write(str(high_score))
-            pygame.quit()
-            sys.exit()
+def spawn_object():
+    obj_type = random.choice(["red", "green", "yellow"])
+    objects.append({"type": obj_type, "x": random.randint(0, SCREEN_WIDTH - OBJECT_WIDTH), "y": -OBJECT_HEIGHT})
 
-    if score < 0:
-        screen.fill(WHITE)
-        game_over_text = game_over_font.render("Game Over", True, BLACK)
-        screen.blit(game_over_text, (SCREEN_WIDTH // 2 - game_over_text.get_width() // 2, SCREEN_HEIGHT // 2 - game_over_text.get_height() // 2))
-        pygame.display.flip()
-        pygame.time.wait(3000)
-        with open("highscore.txt", "w") as f:
-            f.write(str(high_score))
-        pygame.quit()
-        sys.exit()
-
-    # Basket movement
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and basket_x > 0:
-        basket_x -= basket_speed
-    if keys[pygame.K_RIGHT] and basket_x < SCREEN_WIDTH - BASKET_WIDTH:
-        basket_x += basket_speed
-
-    # Object falling
-    object_y += object_speed
-    if object_y > SCREEN_HEIGHT:
-        object_y = -OBJECT_HEIGHT
-        object_x = random.randint(0, SCREEN_WIDTH - OBJECT_WIDTH)
-        score -= 1  # Decrease score if missed
-
-    # Check for collision
-    if (basket_x < object_x < basket_x + BASKET_WIDTH or basket_x < object_x + OBJECT_WIDTH < basket_x + BASKET_WIDTH) and \
-       (basket_y < object_y + OBJECT_HEIGHT < basket_y + BASKET_HEIGHT):
-        score += 1
-        object_y = -OBJECT_HEIGHT
-        object_x = random.randint(0, SCREEN_WIDTH - OBJECT_WIDTH)
-        object_speed += 0.5  # Increase speed each time you catch an object
-
-    # Draw basket and object with rounded corners
+def draw_basket():
     pygame.draw.rect(screen, BLUE, (basket_x, basket_y, BASKET_WIDTH, BASKET_HEIGHT), border_radius=10)
-    pygame.draw.ellipse(screen, RED, (object_x, object_y, OBJECT_WIDTH, OBJECT_HEIGHT))
 
-    # Display score and high score
-    if score > high_score:
-        high_score = score
-    score_text = font.render(f"Score: {score}", True, BLACK)
-    high_score_text = font.render(f"High Score: {high_score}", True, BLACK)
-    screen.blit(score_text, (10, 10))
-    screen.blit(high_score_text, (10, 50))
+def draw_objects():
+    for obj in objects:
+        color = RED if obj["type"] == "red" else GREEN if obj["type"] == "green" else YELLOW
+        pygame.draw.ellipse(screen, color, (obj["x"], obj["y"], OBJECT_WIDTH, OBJECT_HEIGHT))
 
-    # Update the display
-    pygame.display.flip()
-    pygame.time.Clock().tick(30)  # Control the frame rate
+def check_collision():
+    global score
+    caught_objects = []
+    for obj in objects:
+        if basket_x < obj["x"] + OBJECT_WIDTH / 2 < basket_x + BASKET_WIDTH and basket_y < obj["y"] + OBJECT_HEIGHT < basket_y + BASKET_HEIGHT:
+            caught_objects.append(obj)
+            if obj["type"] == "red":
+                score += 1
+            elif obj["type"] == "green":
+                score += 2
+            elif obj["type"] == "yellow":
+                score += 3
+    for obj in caught_objects:
+        objects.remove(obj)
+
+def game_loop():
+    global basket_x, game_state, last_object_spawn, score, high_score
+    running = True
+    while running:
+        screen.fill(BLACK if game_state == "START" else WHITE)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+        
+        if game_state == "START":
+            if draw_button("Start", SCREEN_WIDTH//2 - 75, SCREEN_HEIGHT//2 - 50, 150, 50, GRAY, BLUE):
+                pygame.time.delay(200)  # Prevent accidental double-click
+                game_state = "PLAYING"
+            pygame.display.flip()
+        elif game_state == "PLAYING":
+            keys = pygame.key.get_pressed()
+            basket_x += (-BASKET_SPEED if keys[pygame.K_LEFT] and basket_x > 0 else BASKET_SPEED if keys[pygame.K_RIGHT] and basket_x < SCREEN_WIDTH - BASKET_WIDTH else 0)
+            if pygame.time.get_ticks() - last_object_spawn > OBJECT_SPAWN_DELAY:
+                spawn_object()
+                last_object_spawn = pygame.time.get_ticks()
+            for obj in objects:
+                obj["y"] += OBJECT_SPEED
+            check_collision()
+            # Remove objects that fall off the screen and decrement score if not caught
+            for obj in objects:
+                if obj["y"] > SCREEN_HEIGHT:
+                    objects.remove(obj)
+                    score = max(0, score - 1)  # Decrement score only if the object was not caught
+            if score == 0:
+                game_state = "GAME_OVER"
+            draw_basket()
+            draw_objects()
+            if score > high_score:
+                high_score = score
+            draw_text(f"Score: {score}", font, BLACK, 10, 10)
+            draw_text(f"High Score: {high_score}", font, BLACK, 10, 50)
+            pygame.display.flip()
+            clock.tick(30)
+        elif game_state == "GAME_OVER":
+            draw_text(f"Game Over! High Score: {high_score}", game_over_font, BLACK, SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 100)
+            if draw_button("Restart", SCREEN_WIDTH//2 - 75, SCREEN_HEIGHT//2, 150, 50, GRAY, BLUE):
+                pygame.time.delay(200)
+                score = 10
+                objects.clear()
+                game_state = "START"
+            if draw_button("Quit", SCREEN_WIDTH//2 - 75, SCREEN_HEIGHT//2 + 80, 150, 50, GRAY, RED):
+                running = False
+            pygame.display.flip()
+    with open("highscore.txt", "w") as f:
+        f.write(str(high_score))
+    pygame.quit()
+    sys.exit()
+
+game_loop()
