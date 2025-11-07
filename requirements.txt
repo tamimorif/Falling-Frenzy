@@ -1,0 +1,10 @@
+# Game engine - either pygame or pygame-ce (community edition) works
+pygame>=2.5.0; platform_system != "Darwin"
+pygame-ce>=2.5.0; platform_system == "Darwin"
+
+# Testing
+pytest>=7.4.3
+pytest-cov>=4.1.0
+
+# Optional: For sound generation if assets missing
+numpy>=1.24.0
