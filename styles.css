@@ -1,0 +1,96 @@
+/* ─────────────────────────────────────────────────────────
+   Falling Frenzy — Global Styles
+   Premium dark-mode aesthetic with glassmorphism accents.
+   ───────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep:   #0c0c1e;
+  --bg-mid:    #141428;
+  --accent:    #3c78ff;
+  --gold:      #ffd740;
+  --text:      #e8e8f0;
+  --text-dim:  #8888aa;
+  --glass-bg:  rgba(20, 20, 50, 0.65);
+  --glass-bdr: rgba(255, 255, 255, 0.08);
+  --radius:    16px;
+}
+
+html { height: 100%; }
+
+body {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, var(--bg-deep) 0%, #1a1436 50%, #0e0e24 100%);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ── Game wrapper ──────────────────────────────────────── */
+#game-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Canvas ────────────────────────────────────────────── */
+#gameCanvas {
+  display: block;
+  width: min(800px, 96vw);
+  height: auto;
+  aspect-ratio: 800 / 600;
+  border-radius: var(--radius);
+  border: 1px solid var(--glass-bdr);
+  box-shadow:
+    0 0 60px rgba(60, 120, 255, 0.12),
+    0 8px 32px rgba(0, 0, 0, 0.5);
+  background: var(--bg-mid);
+  cursor: default;
+  touch-action: none;            /* prevent scroll on touch */
+  image-rendering: auto;
+}
+
+#gameCanvas:active { cursor: grabbing; }
+
+/* ── Controls hint ─────────────────────────────────────── */
+#controls-hint {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 22px;
+  padding: 10px 20px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-bdr);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: fadeIn 0.8s ease-out 0.3s both;
+}
+
+#controls-hint span {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 500px) {
+  #game-wrapper { padding: 8px; gap: 8px; }
+  #controls-hint { gap: 6px 14px; padding: 8px 12px; }
+  #controls-hint span { font-size: 11px; }
+}
