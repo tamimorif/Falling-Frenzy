@@ -21,7 +21,7 @@ class AudioManager:
         # Initialize mixer with better quality
         try:
             pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
-        except pygame.error as e:
+        except (pygame.error, NotImplementedError) as e:
             print(f"Could not initialize audio: {e}")
             self.enabled = False
     
@@ -45,12 +45,15 @@ class AudioManager:
             else:
                 # Create a simple beep if file doesn't exist
                 self._create_placeholder_sound(name)
-        except pygame.error as e:
+        except (pygame.error, NotImplementedError) as e:
             print(f"Could not load sound {filename}: {e}")
             self._create_placeholder_sound(name)
     
     def _create_placeholder_sound(self, name: str) -> None:
         """Create a simple placeholder sound."""
+        if not self.enabled:
+            return
+
         try:
             # Create a simple tone
             sample_rate = 22050
@@ -66,7 +69,7 @@ class AudioManager:
             sound = pygame.sndarray.make_sound(stereo_wave)
             sound.set_volume(self.sound_volume)
             self.sound_effects[name] = sound
-        except:
+        except (Exception,):
             # If even that fails, just skip
             pass
     
@@ -82,7 +85,7 @@ class AudioManager:
             
         try:
             self.sound_effects[name].play()
-        except pygame.error:
+        except (pygame.error, NotImplementedError):
             pass
     
     def load_music(self, filename: str) -> None:
@@ -101,7 +104,7 @@ class AudioManager:
                 pygame.mixer.music.load(str(music_path))
                 pygame.mixer.music.set_volume(self.music_volume)
                 self.music_loaded = True
-        except pygame.error as e:
+        except (pygame.error, NotImplementedError) as e:
             print(f"Could not load music {filename}: {e}")
     
     def play_music(self, loops: int = -1) -> None:
@@ -116,7 +119,7 @@ class AudioManager:
             
         try:
             pygame.mixer.music.play(loops)
-        except pygame.error:
+        except (pygame.error, NotImplementedError):
             pass
     
     def stop_music(self) -> None:
@@ -126,7 +129,7 @@ class AudioManager:
             
         try:
             pygame.mixer.music.stop()
-        except pygame.error:
+        except (pygame.error, NotImplementedError):
             pass
     
     def pause_music(self) -> None:
@@ -136,7 +139,7 @@ class AudioManager:
             
         try:
             pygame.mixer.music.pause()
-        except pygame.error:
+        except (pygame.error, NotImplementedError):
             pass
     
     def unpause_music(self) -> None:
@@ -146,7 +149,7 @@ class AudioManager:
             
         try:
             pygame.mixer.music.unpause()
-        except pygame.error:
+        except (pygame.error, NotImplementedError):
             pass
     
     def set_sound_volume(self, volume: float) -> None:
@@ -173,7 +176,7 @@ class AudioManager:
         self.music_volume = max(0.0, min(1.0, volume))
         try:
             pygame.mixer.music.set_volume(self.music_volume)
-        except pygame.error:
+        except (pygame.error, NotImplementedError):
             pass
     
     def load_all_sounds(self) -> None:
