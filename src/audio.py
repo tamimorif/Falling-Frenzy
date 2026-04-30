@@ -20,8 +20,12 @@ class AudioManager:
         
         # Initialize mixer with better quality
         try:
-            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
-        except pygame.error as e:
+            # Check if mixer is available
+            if hasattr(pygame, 'mixer'):
+                pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+            else:
+                self.enabled = False
+        except (pygame.error, NotImplementedError, AttributeError, ImportError) as e:
             print(f"Could not initialize audio: {e}")
             self.enabled = False
     
